@@ -5,8 +5,11 @@
 package it.polito.tdp.crimes;
 
 import java.net.URL;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.ResourceBundle;
 
+import it.polito.tdp.crimes.model.Arco;
 import it.polito.tdp.crimes.model.Model;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -25,16 +28,16 @@ public class CrimesController {
     private URL location;
 
     @FXML // fx:id="boxCategoria"
-    private ComboBox<?> boxCategoria; // Value injected by FXMLLoader
+    private ComboBox<String> boxCategoria; // Value injected by FXMLLoader
 
     @FXML // fx:id="boxGiorno"
-    private ComboBox<?> boxGiorno; // Value injected by FXMLLoader
+    private ComboBox<LocalDate> boxGiorno; // Value injected by FXMLLoader
 
     @FXML // fx:id="btnAnalisi"
     private Button btnAnalisi; // Value injected by FXMLLoader
 
     @FXML // fx:id="boxArco"
-    private ComboBox<?> boxArco; // Value injected by FXMLLoader
+    private ComboBox<Arco> boxArco; // Value injected by FXMLLoader
 
     @FXML // fx:id="btnPercorso"
     private Button btnPercorso; // Value injected by FXMLLoader
@@ -46,14 +49,61 @@ public class CrimesController {
     void doCreaGrafo(ActionEvent event) {
     	txtResult.clear();
     	txtResult.appendText("Crea grafo...\n");
+    	String categoriaReato=this.boxCategoria.getValue();
+    	if(categoriaReato==null) {
+    		this.txtResult.appendText("Attenzione! Nessuna categoria reato selezionata!\n");
+    		return;
+    	}
+    	LocalDate giorno=this.boxGiorno.getValue();
+    	if(giorno==null) {
+    		this.txtResult.appendText("Attenzione, nessun giorno selezionato!\n");
+    		return;
+    	}
+    	model.creaGrafo(categoriaReato,giorno);
+    	Integer archi=model.getNumArchi();
+    	Integer vertici=model.getNumVertici();
+    	if(archi!=0 && vertici!=0) {
+    		this.txtResult.appendText("GRAFO CREATO CON SUCCESSO!\n "+archi+" ARCHI e "+vertici+" VERTICI.\n");
+    	}
+    	this.txtResult.appendText("Gli archi con peso inferiore al peso mediano sono");
+    	List<Arco> minori=model.getMinoriPesoMediano();
+    	if(minori.size()==0) {
+    		this.txtResult.appendText(" zero.");
+    	}else {
+    		this.txtResult.appendText(":\n");
+    		for(Arco a:model.getMinoriPesoMediano()) {
+        		this.txtResult.appendText(""+a.toString()+"\n");
+        	}
+    	}
+    	this.boxArco.getItems().addAll(model.getMinoriPesoMediano());
     }
 
     @FXML
     void doCalcolaPercorso(ActionEvent event) {
     	txtResult.clear();
     	txtResult.appendText("Calcola percorso...\n");
+    	Arco arco=this.boxArco.getValue();
+    	if(arco==null) {
+    		this.txtResult.appendText("ATTENZIONE! Nessun arco selezionato");
+    		return;
+    	}
+    	List<String> cammino=model.calcolaCammino(arco);
+    	if(cammino==null) {
+    		this.txtResult.appendText("Nessun cammino trovato");
+    	}else {
+    		this.txtResult.appendText("Trovato un cammino di lunghezza "+cammino.size()+" che passa per i vertici:\n");
+    		for(String vertice:cammino) {
+    			this.txtResult.appendText(vertice+"\n");
+    		}
+    		this.txtResult.appendText("Il peso totoale del cammino e' :"+model.getPesoCamminio());
+    	}
+    	
     }
 
+    void loadData() {
+    	this.boxCategoria.getItems().addAll(model.getCategoryID());
+    	this.boxGiorno.getItems().addAll(model.getDays());
+    }
     @FXML // This method is called by the FXMLLoader when initialization is complete
     void initialize() {
         assert boxCategoria != null : "fx:id=\"boxCategoria\" was not injected: check your FXML file 'Crimes.fxml'.";
@@ -67,5 +117,6 @@ public class CrimesController {
     
     public void setModel(Model model) {
     	this.model = model;
+    	loadData();
     }
 }
